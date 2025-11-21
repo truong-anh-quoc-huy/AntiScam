@@ -1,5 +1,7 @@
 package com.example.LVTN.config;
 
+import lombok.experimental.NonFinal;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -22,11 +24,12 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
-
-    private final String SIGNER_KEY = "abcDEF123!@#xyz789JWTKeySecret_0123456789012345678901234567890123456789";
+    @NonFinal
+    @Value("${jwt.signerKey}")
+    private String SIGNER_KEY;
 
     private static final String[] PUBLIC_ENDPOINTS = {
-            "/auth/**",
+            "/api/auth/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/v3/api-docs/**",
@@ -36,22 +39,21 @@ public class SecurityConfig {
     private static final String[] PUBLIC_GET_ENDPOINTS = {
             "/api/reports"
     };
+
     private static final String[] PUBLIC_POST_ENDPOINTS = {
             "/api/reports"
     };
 
+
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
-        httpSecurity
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
                 .authorizeHttpRequests(auth -> auth
-                        // Các endpoint public
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
-                        .requestMatchers(HttpMethod.POST, PUBLIC_POST_ENDPOINTS).permitAll()
                         .requestMatchers(HttpMethod.GET, PUBLIC_GET_ENDPOINTS).permitAll()
-                        // Các request khác cần JWT
+                        .requestMatchers(HttpMethod.POST, PUBLIC_POST_ENDPOINTS).permitAll()
                         .anyRequest().authenticated()
                 )
-                // Cấu hình JWT
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt
                         .decoder(jwtDecoder())
                         .jwtAuthenticationConverter(jwtAuthenticationConverter())
@@ -59,25 +61,36 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(withDefaults());
 
-        return httpSecurity.build();
+        return http.build();
     }
 
+    // ---------------------
+    // JWT DECODER (HS256)
+    // ---------------------
     @Bean
     public JwtDecoder jwtDecoder() {
-        SecretKeySpec secretKeySpec = new SecretKeySpec(SIGNER_KEY.getBytes(), "HS512");
-        return NimbusJwtDecoder.withSecretKey(secretKeySpec)
-                .macAlgorithm(MacAlgorithm.HS512)
+        SecretKeySpec secretKey = new SecretKeySpec(SIGNER_KEY.getBytes(), "HmacSHA256");
+
+        return NimbusJwtDecoder.withSecretKey(secretKey)
+                .macAlgorithm(MacAlgorithm.HS256)
                 .build();
     }
 
+    // ---------------------
+    // AUTH CONVERTER (lấy role + phone)
+    // ---------------------
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter converter = new JwtGrantedAuthoritiesConverter();
-        converter.setAuthorityPrefix(""); // role không cần "ROLE_" prefix
+        converter.setAuthorityPrefix(""); // giữ nguyên: USER / ADMIN
+        converter.setAuthoritiesClaimName("role");
 
         JwtAuthenticationConverter authConverter = new JwtAuthenticationConverter();
         authConverter.setJwtGrantedAuthoritiesConverter(converter);
-        authConverter.setPrincipalClaimName("sub"); // claim chứa username
+
+        // claim chứa tài khoản đăng nhập (phone)
+        authConverter.setPrincipalClaimName("sub");
+
         return authConverter;
     }
 
@@ -86,3 +99,4 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 }
+

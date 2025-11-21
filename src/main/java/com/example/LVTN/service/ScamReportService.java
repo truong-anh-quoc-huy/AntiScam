@@ -1,7 +1,8 @@
 package com.example.LVTN.service;
 
-import com.example.LVTN.dto.CheckScamResponse;
-import com.example.LVTN.dto.ScamReportDTO;
+import com.example.LVTN.dto.Requests.ScamReportRequest;
+import com.example.LVTN.dto.Response.CheckScamResponse;
+import com.example.LVTN.dto.Response.ScamReportResponse;
 import com.example.LVTN.entity.ScamNumberEntity;
 import com.example.LVTN.entity.ScamReportEntity;
 import com.example.LVTN.repository.ScamNumberRepository;
@@ -29,39 +30,38 @@ public class ScamReportService {
 
     // ===================== CRUD REPORT =====================
 
-    public List<ScamReportDTO> getAllReports() {
+    public List<ScamReportResponse> getAllReports() {
         return repository.findAll()
                 .stream()
-                .map(mapper::toDTO)
+                .map(mapper::toResponseDTO)
                 .collect(Collectors.toList());
     }
 
-    public ScamReportDTO getReportById(Long id) {
+    public ScamReportResponse getReportById(Long id) {
         return repository.findById(id)
-                .map(mapper::toDTO)
+                .map(mapper::toResponseDTO)
                 .orElseThrow(() -> new RuntimeException("Report not found"));
     }
 
-    public ScamReportDTO createReport(ScamReportDTO dto) {
+    public ScamReportResponse createReport(ScamReportRequest dto) {
         ScamReportEntity entity = mapper.toEntity(dto);
         entity.setStatus("PENDING");
         entity.setCreatedAt(LocalDateTime.now());
 
         ScamReportEntity saved = repository.save(entity);
 
-        // 🔥 Cập nhật bảng scam_numbers
         if (entity.getPhone() != null && !entity.getPhone().isBlank()) {
             updateScamNumber(entity.getPhone());
         }
 
-        return mapper.toDTO(saved);
+        return mapper.toResponseDTO(saved);
     }
 
-    public ScamReportDTO updateStatus(Long id, String status) {
+    public ScamReportResponse updateStatus(Long id, String status) {
         ScamReportEntity entity = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Report not found"));
         entity.setStatus(status);
-        return mapper.toDTO(repository.save(entity));
+        return mapper.toResponseDTO(repository.save(entity));
     }
 
     public void deleteReport(Long id) {
@@ -80,11 +80,9 @@ public class ScamReportService {
                     return newRecord;
                 });
 
-        // Tăng số lần báo cáo
         scamNumber.setReportCount(scamNumber.getReportCount() + 1);
         scamNumber.setLastReportAt(LocalDateTime.now());
 
-        // Tự động phân loại status
         if (scamNumber.getReportCount() >= 10) {
             scamNumber.setStatus("VERIFIED");
         } else if (scamNumber.getReportCount() >= 5) {
@@ -116,5 +114,5 @@ public class ScamReportService {
                 .status(status)
                 .build();
     }
-
 }
+

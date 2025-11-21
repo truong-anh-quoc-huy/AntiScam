@@ -13,3 +13,7 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
+jwt:
+  signerKey: ${JWT_SECRET}
+  valid_duration: 360000
+  refresh_token: 30

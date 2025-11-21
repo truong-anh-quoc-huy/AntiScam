@@ -1,4 +1,4 @@
-package com.example.LVTN.dto;
+package com.example.LVTN.dto.Response;
 
 import lombok.Builder;
 import lombok.Data;

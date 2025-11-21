@@ -1,4 +1,4 @@
-package com.example.LVTN.dto;
+package com.example.LVTN.dto.Requests;
 
 import com.example.LVTN.validation.AtLeastOneNotEmpty;
 import jakarta.validation.constraints.Email;
@@ -17,9 +17,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @AtLeastOneNotEmpty(fields = {"email", "phone"}, message = "Phải nhập ít nhất email hoặc số điện thoại")
-public class ScamReportDTO {
-
-    private Long id;
+public class ScamReportRequest {
 
     @NotBlank(message = "Tên người báo cáo không được để trống")
     private String reporterName;
@@ -34,6 +32,4 @@ public class ScamReportDTO {
 
     private String description;
     private String evidenceLink;
-    private String status;
-    private LocalDateTime createdAt;
 }
