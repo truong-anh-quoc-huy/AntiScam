@@ -1,69 +1,71 @@
 package com.example.LVTN.config;
 
-import com.example.LVTN.service.JwtService;
-import io.jsonwebtoken.Claims;
+import com.example.LVTN.entity.User;
+import com.example.LVTN.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.apache.http.HttpHeaders;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-
 import java.io.IOException;
-import java.util.List;
-
+import java.util.HashMap;
+import java.util.Map;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
+    private static final Logger logger = LoggerFactory.getLogger(JwtAuthFilter.class);
 
-    private final JwtService jwtService;
+    private final UserRepository userRepository;
 
-
-    public JwtAuthFilter(JwtService jwtService) {
-        this.jwtService = jwtService;
+    public JwtAuthFilter(UserRepository userRepository) {
+        this.userRepository = userRepository;
     }
 
-
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
+        if (authentication != null && authentication.isAuthenticated()) {
+            try {
+                // Đồng bộ: sub claim = userId
+                Long userId = Long.valueOf(authentication.getName());
+                User user = userRepository.findById(userId).orElse(null);
 
-        final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
+                // Log request và username
+                logger.info("User {} gọi endpoint {}", userId, request.getRequestURI());
+
+                if (user == null || Boolean.FALSE.equals(user.getIsActive())) {
+                    sendJsonResponse(response, HttpServletResponse.SC_FORBIDDEN,
+                            "Tài khoản đã bị vô hiệu hóa.");
+                    return;
+                }
+
+            } catch (NumberFormatException e) {
+                // Nếu sub claim không phải số → trả 401
+                sendJsonResponse(response, HttpServletResponse.SC_UNAUTHORIZED,
+                        "Token không hợp lệ.");
+                return;
+            }
         }
-
-
-        final String token = authHeader.substring(7);
-
-
-        try {
-            Claims claims = jwtService.parseToken(token);
-            String username = claims.getSubject();
-            String role = claims.get("role", String.class);
-
-
-            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                    username,
-                    null,
-                    List.of(new SimpleGrantedAuthority("ROLE_" + role))
-            );
-
-
-            SecurityContextHolder.getContext().setAuthentication(authToken);
-        } catch (Exception e) {
-// invalid token -> ignore, security will handle
-        }
-
 
         filterChain.doFilter(request, response);
+    }
+
+    private void sendJsonResponse(HttpServletResponse response, int status, String message) throws IOException {
+        response.setStatus(status);
+        response.setContentType("application/json");
+        Map<String, Object> body = new HashMap<>();
+        body.put("code", status);
+        body.put("message", message);
+        response.getWriter().write(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(body));
     }
 }

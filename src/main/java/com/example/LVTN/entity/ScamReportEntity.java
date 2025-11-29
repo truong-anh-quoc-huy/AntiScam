@@ -12,6 +12,7 @@ public class ScamReportEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private Long userId;
     private String reporterName;
     private String email;
     private String phone;

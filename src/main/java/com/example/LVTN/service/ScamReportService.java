@@ -10,6 +10,7 @@ import com.example.LVTN.repository.ScamReportMapper;
 import com.example.LVTN.repository.ScamReportRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,6 +21,8 @@ public class ScamReportService {
     private final ScamReportRepository repository;
     private final ScamReportMapper mapper;
     private final ScamNumberRepository scamNumberRepo;
+
+    private static final int DAILY_LIMIT = 5;
 
     public ScamReportService(ScamReportRepository repository, ScamReportMapper mapper,
                              ScamNumberRepository scamNumberRepo) {
@@ -43,8 +46,21 @@ public class ScamReportService {
                 .orElseThrow(() -> new RuntimeException("Report not found"));
     }
 
-    public ScamReportResponse createReport(ScamReportRequest dto) {
+    public ScamReportResponse createReport(Long userId, ScamReportRequest dto) {
+
+        // ===================== CHECK DAILY LIMIT =====================
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay = startOfDay.plusDays(1);
+
+        int todayCount = repository.countByUserIdAndCreatedAtBetween(userId, startOfDay, endOfDay);
+        if (todayCount >= DAILY_LIMIT) {
+            throw new RuntimeException("Bạn chỉ được gửi tối đa "
+                    + DAILY_LIMIT + " báo cáo mỗi ngày.");
+        }
+
+        // ===================== CREATE REPORT =========================
         ScamReportEntity entity = mapper.toEntity(dto);
+        entity.setUserId(userId);
         entity.setStatus("PENDING");
         entity.setCreatedAt(LocalDateTime.now());
 
@@ -115,4 +131,3 @@ public class ScamReportService {
                 .build();
     }
 }
-

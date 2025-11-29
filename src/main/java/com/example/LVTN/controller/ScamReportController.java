@@ -8,11 +8,15 @@ import com.example.LVTN.service.ScamReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
+
 @RequestMapping("/api/reports")
 public class ScamReportController {
 
@@ -72,19 +76,23 @@ public class ScamReportController {
             summary = "Tạo báo cáo mới",
             description = "Người dùng gửi báo cáo số điện thoại nghi ngờ lừa đảo"
     )
-    @PostMapping
+    @PostMapping("/create")
     public ResponseEntity<ApiResponse<ScamReportResponse>> createReport(
-            @Valid @RequestBody ScamReportRequest dto) {
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody ScamReportRequest request) {
 
-        ScamReportResponse created = service.createReport(dto);
+        Long userId = Long.valueOf(jwt.getClaimAsString("sub"));
+
+        ScamReportResponse response = service.createReport(userId, request);
 
         return ResponseEntity.ok(
                 ApiResponse.<ScamReportResponse>builder()
-                        .message("Tạo báo cáo thành công")
-                        .data(created)
+                        .message("Gửi báo cáo thành công")
+                        .data(response)
                         .build()
         );
     }
+
 
     // -------------------- UPDATE STATUS --------------------
     @Operation(
@@ -92,6 +100,7 @@ public class ScamReportController {
             description = "Admin cập nhật trạng thái báo cáo như: pending / approved / rejected"
     )
     @PutMapping("/{id}/status")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<ApiResponse<ScamReportResponse>> updateStatus(
             @PathVariable Long id,
             @RequestParam String status) {
@@ -110,8 +119,9 @@ public class ScamReportController {
             description = "Xóa báo cáo khỏi hệ thống theo ID"
     )
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')") // chỉ Admin mới được gọi
     public ResponseEntity<ApiResponse<Void>> deleteReport(@PathVariable Long id) {
-        service.deleteReport(id); // fetch entity trước khi xóa
+        service.deleteReport(id);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .message("Xóa báo cáo thành công")
                 .data(null)
