@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface ScamReportRepository extends JpaRepository<ScamReportEntity, Long> {
+    List<ScamReportEntity> findByUserIdOrderByCreatedAtDesc(Long userId);
     List<ScamReportEntity> findByPhone(String phone);
     @Query("SELECT COUNT(s) FROM ScamReportEntity s WHERE s.userId = :userId AND s.createdAt >= :start AND s.createdAt < :end")
     int countByUserIdAndCreatedAtBetween(@Param("userId") Long userId,

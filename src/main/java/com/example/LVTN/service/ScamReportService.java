@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -99,10 +100,8 @@ public class ScamReportService {
         scamNumber.setReportCount(scamNumber.getReportCount() + 1);
         scamNumber.setLastReportAt(LocalDateTime.now());
 
-        if (scamNumber.getReportCount() >= 10) {
+        if (scamNumber.getReportCount() >= 5) {
             scamNumber.setStatus("VERIFIED");
-        } else if (scamNumber.getReportCount() >= 5) {
-            scamNumber.setStatus("AUTO_CONFIRMED");
         } else {
             scamNumber.setStatus("SUSPECT");
         }
@@ -110,24 +109,35 @@ public class ScamReportService {
         scamNumberRepo.save(scamNumber);
     }
 
+    //Check history
+    public List<ScamReportResponse> getReportsByUser(Long userId) {
+        return repository.findByUserIdOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(mapper::toResponseDTO)
+                .collect(Collectors.toList());
+    }
+
     // ===================== API CHECK SCAM =====================
 
     public CheckScamResponse checkScam(String phone) {
         ScamNumberEntity scamNumber = scamNumberRepo.findByPhone(phone).orElse(null);
-
+        boolean isScam = false;
         boolean reported = scamNumber != null;
         long count = reported ? scamNumber.getReportCount() : 0;
         String lastReport = reported && scamNumber.getLastReportAt() != null
                 ? scamNumber.getLastReportAt().toString()
                 : null;
         String status = reported ? scamNumber.getStatus() : "SUSPECT";
-
+        if(Objects.equals(status, "VERIFIED")) {
+            isScam = true;
+        }
         return CheckScamResponse.builder()
                 .phone(phone)
                 .reported(reported)
                 .count(count)
                 .lastReport(lastReport)
                 .status(status)
+                .isScam(isScam)
                 .build();
     }
 }

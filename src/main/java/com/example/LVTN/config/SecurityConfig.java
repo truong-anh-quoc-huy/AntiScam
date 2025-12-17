@@ -34,6 +34,7 @@ public class SecurityConfig {
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/v3/api-docs/**",
+            "/api/reports/**"
     };
 
     private static final String[] PUBLIC_GET_ENDPOINTS = {
@@ -47,19 +48,22 @@ public class SecurityConfig {
 
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+//                .addFilterAfter(jwtAuthFilter,
+//                        org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationFilter.class)
+
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .requestMatchers(HttpMethod.GET, PUBLIC_GET_ENDPOINTS).permitAll()
                         .requestMatchers(HttpMethod.POST, PUBLIC_POST_ENDPOINTS).permitAll()
-                        .anyRequest().authenticated()
+                        .anyRequest().permitAll()
+//                        .authenticated()
                 )
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt
-                        .decoder(jwtDecoder())
-                        .jwtAuthenticationConverter(jwtAuthenticationConverter())
-                ))
+//                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt
+//                        .decoder(jwtDecoder())
+//                        .jwtAuthenticationConverter(jwtAuthenticationConverter())
+//                ))
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(withDefaults());
 
@@ -69,32 +73,32 @@ public class SecurityConfig {
     // ---------------------
     // JWT DECODER (HS256)
     // ---------------------
-    @Bean
-    public JwtDecoder jwtDecoder() {
-        SecretKeySpec secretKey = new SecretKeySpec(SIGNER_KEY.getBytes(), "HmacSHA256");
-
-        return NimbusJwtDecoder.withSecretKey(secretKey)
-                .macAlgorithm(MacAlgorithm.HS256)
-                .build();
-    }
-
-    // ---------------------
-    // AUTH CONVERTER (lấy role + phone)
-    // ---------------------
-    @Bean
-    public JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter converter = new JwtGrantedAuthoritiesConverter();
-        converter.setAuthorityPrefix(""); // giữ nguyên: USER / ADMIN
-        converter.setAuthoritiesClaimName("role");
-
-        JwtAuthenticationConverter authConverter = new JwtAuthenticationConverter();
-        authConverter.setJwtGrantedAuthoritiesConverter(converter);
-
-        // claim chứa tài khoản đăng nhập (phone)
-        authConverter.setPrincipalClaimName("sub");
-
-        return authConverter;
-    }
+//    @Bean
+//    public JwtDecoder jwtDecoder() {
+//        SecretKeySpec secretKey = new SecretKeySpec(SIGNER_KEY.getBytes(), "HmacSHA256");
+//
+//        return NimbusJwtDecoder.withSecretKey(secretKey)
+//                .macAlgorithm(MacAlgorithm.HS256)
+//                .build();
+//    }
+//
+//    // ---------------------
+//    // AUTH CONVERTER (lấy role + phone)
+//    // ---------------------
+//    @Bean
+//    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+//        JwtGrantedAuthoritiesConverter converter = new JwtGrantedAuthoritiesConverter();
+//        converter.setAuthorityPrefix(""); // giữ nguyên: USER / ADMIN
+//        converter.setAuthoritiesClaimName("role");
+//
+//        JwtAuthenticationConverter authConverter = new JwtAuthenticationConverter();
+//        authConverter.setJwtGrantedAuthoritiesConverter(converter);
+//
+//        // claim chứa tài khoản đăng nhập (phone)
+//        authConverter.setPrincipalClaimName("sub");
+//
+//        return authConverter;
+//    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {

@@ -114,6 +114,13 @@
             <version>8.0.0</version>
         </dependency>
 
+        <!-- Firebase Admin -->
+        <dependency>
+            <groupId>com.google.firebase</groupId>
+            <artifactId>firebase-admin</artifactId>
+            <version>9.3.0</version>
+        </dependency>
+
         <dependency>
             <groupId>me.paulschwarz</groupId>
             <artifactId>spring-dotenv</artifactId>
@@ -178,6 +185,12 @@
             <version>3.26.3</version>
         </dependency>
     </dependencies>
+    <repositories>
+        <repository>
+            <id>google</id>
+            <url>https://maven.google.com/</url>
+        </repository>
+    </repositories>
 
     <build>
         <plugins>

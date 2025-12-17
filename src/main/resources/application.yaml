@@ -17,3 +17,6 @@ jwt:
   signerKey: ${JWT_SECRET}
   valid_duration: 360000
   refresh_token: 30
+
+firebase:
+  api-key: ${FIREBASE_API_KEY}

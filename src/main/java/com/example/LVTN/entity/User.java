@@ -25,12 +25,11 @@ public class User {
     private String username;
 
 
-    @Column(nullable = false, unique = true)
-    private String email;
+    @Column(unique = true)
+    private String email; // OTP login có thể null
 
+    private String password; // OTP login có thể null
 
-    @Column(nullable = false)
-    private String password;
 
 
     private String fullName;

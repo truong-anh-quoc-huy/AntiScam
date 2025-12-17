@@ -11,5 +11,5 @@ public class CheckScamResponse {
     private long count;
     String status;         // SUSPECT / VERIFIED / SAFE
     private String lastReport;
-
+    private Boolean isScam = false;
 }
