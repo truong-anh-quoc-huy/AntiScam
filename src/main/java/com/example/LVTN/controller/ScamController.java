@@ -1,6 +1,7 @@
 package com.example.LVTN.controller;
 
 import com.example.LVTN.dto.Requests.ScamPredictRequest;
+import com.example.LVTN.dto.Response.ApiResponse;
 import com.example.LVTN.dto.Response.ScamPredictResponse;
 import com.example.LVTN.service.ScamDetectionService;
 import org.springframework.http.ResponseEntity;
@@ -20,17 +21,26 @@ public class ScamController {
     }
 
     @PostMapping("/check")
-    public ResponseEntity<?> checkScam(@RequestBody ScamPredictRequest request) {
+    public ResponseEntity<ApiResponse<ScamPredictResponse>> checkScam(
+            @RequestBody ScamPredictRequest request) {
 
         ScamPredictResponse result =
                 scamDetectionService.predict(request.getText());
 
         // Threshold logic
-        if (result.getConfidence() < 0.6) {
+        if (result.getConfidence() < 0.5) {
             result.setLabel("nghi ngờ");
         }
 
-        return ResponseEntity.ok(result);
+        ApiResponse<ScamPredictResponse> response =
+                ApiResponse.<ScamPredictResponse>builder()
+                        .code(200)
+                        .message("OK")
+                        .data(result)
+                        .build();
+
+        return ResponseEntity.ok(response);
     }
+
 }
 

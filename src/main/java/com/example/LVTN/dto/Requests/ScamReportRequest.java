@@ -13,7 +13,6 @@ import java.time.LocalDateTime;
 
 @Data
 @Builder
-@Jacksonized
 @NoArgsConstructor
 @AllArgsConstructor
 @AtLeastOneNotEmpty(fields = {"email", "phone"}, message = "Phải nhập ít nhất email hoặc số điện thoại")
@@ -21,7 +20,7 @@ public class ScamReportRequest {
 
     @NotBlank(message = "Tên người báo cáo không được để trống")
     private String reporterName;
-
+    private String reporterPhone;
     private String phone;
 
     @Email(message = "Email không hợp lệ")

@@ -99,7 +99,7 @@ public class ScamReportController {
     public ResponseEntity<ApiResponse<ScamReportResponse>> createReport(
             @RequestBody ScamReportRequest request) {
 
-        ScamReportResponse response = service.createReport(null, request);
+        ScamReportResponse response = service.createReport( request);
 
         return ResponseEntity.ok(
                 ApiResponse.<ScamReportResponse>builder()
@@ -144,25 +144,24 @@ public class ScamReportController {
 //                .data(null)
 //                .build());
 //    }
-//    @Operation(
-//            summary = "Xem lich su bao cao",
-//            description = "Xem lich su bao cao"
-//    )
-//    @GetMapping("/my-reports")
-//    public ResponseEntity<ApiResponse<List<ScamReportResponse>>> getMyReports(
-//            @AuthenticationPrincipal Jwt jwt
-//    ) {
-//
-//        Long userId = Long.valueOf(jwt.getClaimAsString("sub"));
-//
-//        List<ScamReportResponse> reports = service.getReportsByUser(userId);
-//
-//        return ResponseEntity.ok(
-//                ApiResponse.<List<ScamReportResponse>>builder()
-//                        .message("Lấy lịch sử báo cáo thành công")
-//                        .data(reports)
-//                        .build()
-//        );
-//    }
+    @Operation(
+            summary = "Xem lich su bao cao",
+            description = "Xem lich su bao cao"
+    )
+    @GetMapping("/my-reports")
+    public ResponseEntity<ApiResponse<List<ScamReportResponse>>> getMyReports(
+            @RequestParam String phone
+    ) {
+        List<ScamReportResponse> reports =
+                service.getReportsByReporterPhone(phone);
+
+        return ResponseEntity.ok(
+                ApiResponse.<List<ScamReportResponse>>builder()
+                        .message("Lấy lịch sử báo cáo thành công")
+                        .data(reports)
+                        .build()
+        );
+    }
+
 
 }

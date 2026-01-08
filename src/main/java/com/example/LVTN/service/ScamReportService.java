@@ -32,6 +32,27 @@ public class ScamReportService {
         this.scamNumberRepo = scamNumberRepo;
     }
 
+    private String normalizePhone(String phone) {
+        if (phone == null) return null;
+
+        phone = phone.trim();
+
+        // +84988xxxxxx → 0988xxxxxx
+        if (phone.startsWith("+84")) {
+            return "0" + phone.substring(3);
+        }
+
+        // 84988xxxxxx → 0988xxxxxx
+        if (phone.startsWith("84")) {
+            return "0" + phone.substring(2);
+        }
+
+        // 0988xxxxxx → OK
+        return phone;
+    }
+
+
+
     // ===================== CRUD REPORT =====================
 
     public List<ScamReportResponse> getAllReports() {
@@ -47,32 +68,43 @@ public class ScamReportService {
                 .orElseThrow(() -> new RuntimeException("Report not found"));
     }
 
-    public ScamReportResponse createReport(Long userId, ScamReportRequest dto) {
 
-        // ===================== CHECK DAILY LIMIT =====================
+    public ScamReportResponse createReport(ScamReportRequest dto) {
+
+        String reporterPhone = normalizePhone(dto.getReporterPhone());
+        String phone = normalizePhone(dto.getPhone());
+
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         LocalDateTime endOfDay = startOfDay.plusDays(1);
 
-        int todayCount = repository.countByUserIdAndCreatedAtBetween(userId, startOfDay, endOfDay);
+        int todayCount = repository
+                .countByReporterPhoneAndCreatedAtBetween(
+                        reporterPhone, startOfDay, endOfDay
+                );
+
         if (todayCount >= DAILY_LIMIT) {
-            throw new RuntimeException("Bạn chỉ được gửi tối đa "
-                    + DAILY_LIMIT + " báo cáo mỗi ngày.");
+            throw new RuntimeException(
+                    "Bạn chỉ được gửi tối đa " + DAILY_LIMIT + " báo cáo mỗi ngày"
+            );
         }
 
-        // ===================== CREATE REPORT =========================
         ScamReportEntity entity = mapper.toEntity(dto);
-        entity.setUserId(userId);
+        entity.setReporterPhone(reporterPhone);
+        entity.setPhone(phone);
         entity.setStatus("PENDING");
         entity.setCreatedAt(LocalDateTime.now());
 
         ScamReportEntity saved = repository.save(entity);
 
-        if (entity.getPhone() != null && !entity.getPhone().isBlank()) {
-            updateScamNumber(entity.getPhone());
+        if (phone != null && !phone.isBlank()) {
+            updateScamNumber(phone);
         }
 
         return mapper.toResponseDTO(saved);
     }
+
+
+
 
     public ScamReportResponse updateStatus(Long id, String status) {
         ScamReportEntity entity = repository.findById(id)
@@ -110,16 +142,25 @@ public class ScamReportService {
     }
 
     //Check history
-    public List<ScamReportResponse> getReportsByUser(Long userId) {
-        return repository.findByUserIdOrderByCreatedAtDesc(userId)
+    // ===================== REPORT HISTORY =====================
+
+    public List<ScamReportResponse> getReportsByReporterPhone(String reporterPhone) {
+        String normalized = normalizePhone(reporterPhone);
+
+        return repository
+                .findByReporterPhoneOrderByCreatedAtDesc(normalized)
                 .stream()
                 .map(mapper::toResponseDTO)
                 .collect(Collectors.toList());
     }
 
+
+
+
     // ===================== API CHECK SCAM =====================
 
     public CheckScamResponse checkScam(String phone) {
+        phone = normalizePhone(phone);
         ScamNumberEntity scamNumber = scamNumberRepo.findByPhone(phone).orElse(null);
         boolean isScam = false;
         boolean reported = scamNumber != null;

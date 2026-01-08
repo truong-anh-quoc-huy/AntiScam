@@ -14,6 +14,7 @@ public class ScamReportEntity {
     private Long id;
     private Long userId;
     private String reporterName;
+    private String reporterPhone;
     private String email;
     private String phone;
     private String scamType;

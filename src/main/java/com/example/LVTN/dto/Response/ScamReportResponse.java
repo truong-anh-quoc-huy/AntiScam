@@ -15,6 +15,7 @@ public class ScamReportResponse {
 
     private Long id;
     private String reporterName;
+    private String reporterPhone;
     private String phone;
     private String email;
     private String scamType;
